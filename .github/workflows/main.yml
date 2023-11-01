@@ -1,0 +1,61 @@
+name: Deploy Lambda and API Gateway
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: pip install awscli
+
+      - name: Zip Python file
+        run: zip -r lambda_function.zip hello.py
+
+      - name: Deploy Lambda function
+        run: |
+          aws lambda create-function --function-name MyFunction \
+            --zip-file fileb://lambda_function.zip \
+            --handler lambda_function.lambda_handler --runtime python3.8 \
+            --role arn:aws:iam::123456789012:role/lambda-execution-role
+
+      - name: Deploy API Gateway
+        run: |
+          aws apigateway create-rest-api --name 'test_api'
+
+      - name: Integrate Lambda with API Gateway
+        run: |
+          lambda_arn=$(aws lambda get-function --function-name MyFunction --query Configuration.FunctionArn --output text)
+          api_id=$(aws apigateway get-rest-apis --query 'items[0].id' --output text)
+          aws apigateway put-integration --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
+            --type 'AWS_PROXY' --integration-http-method 'POST' --uri arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/$lambda_arn/invocations
+
+          aws apigateway put-method-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
+            --status-code '200' --response-models '{"application/json": "Empty"}'
+
+          aws apigateway put-method-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
+            --status-code '500' --response-models '{"application/json": "Empty"}'
+
+          aws apigateway put-integration-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
+            --status-code '200' --response-templates '{"application/json": ""}'
+
+          aws apigateway put-integration-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
+            --status-code '500' --response-templates '{"application/json": ""}'
+
+          aws apigateway create-deployment --rest-api-id $api_id --stage-name 'test'
+
+
+
+
+
