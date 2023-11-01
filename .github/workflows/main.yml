@@ -1,4 +1,4 @@
-name: Deploy Lambda and API Gateway
+name: Terraform Deployment
 
 on:
   push:
@@ -8,61 +8,27 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
         with:
-          python-version: 3.8
-
-      - name: Install dependencies
-        run: pip install awscli
-
-      - name: Configure AWS credentials
+         terraform_version: 1.6.2
+         
+      - name: Configure AWS CLI
         run: |
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set region us-east-1
+          aws configure set region us-east-1 
+          
+      - name: Terraform Init
+        run: terraform init
 
+      - name: Terraform Plan
+        run: terraform plan
 
-      - name: Zip Python file
-        run: zip -r lambda_function.zip hello.py
-
-      - name: Deploy Lambda function
-        run: |
-          aws lambda create-function --function-name MyFunction \
-            --zip-file fileb://lambda_function.zip \
-            --handler lambda_function.lambda_handler --runtime python3.8 \
-            --role arn:aws:iam::123456789012:role/lambda-execution-role
-
-      - name: Deploy API Gateway
-        run: |
-          aws apigateway create-rest-api --name 'test_api'
-
-      - name: Integrate Lambda with API Gateway
-        run: |
-          lambda_arn=$(aws lambda get-function --function-name MyFunction --query Configuration.FunctionArn --output text)
-          api_id=$(aws apigateway get-rest-apis --query 'items[0].id' --output text)
-          aws apigateway put-integration --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
-            --type 'AWS_PROXY' --integration-http-method 'POST' --uri arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/$lambda_arn/invocations
-
-          aws apigateway put-method-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
-            --status-code '200' --response-models '{"application/json": "Empty"}'
-
-          aws apigateway put-method-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
-            --status-code '500' --response-models '{"application/json": "Empty"}'
-
-          aws apigateway put-integration-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
-            --status-code '200' --response-templates '{"application/json": ""}'
-
-          aws apigateway put-integration-response --rest-api-id $api_id --resource-id 'root' --http-method 'GET' \
-            --status-code '500' --response-templates '{"application/json": ""}'
-
-          aws apigateway create-deployment --rest-api-id $api_id --stage-name 'test'
-
-
-
-
-
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
