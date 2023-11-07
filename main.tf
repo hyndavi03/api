@@ -131,13 +131,3 @@ terraform {
 }
 
 
-  
-terraform {
-  backend "s3" {
-    bucket = "terraformstatefile0"  # Replace with your bucket name
-    key    = "terraform.tfstate"
-    region = "ap-south-1"  # Replace with your preferred region
-  }
-}
-
-
