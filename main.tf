@@ -58,6 +58,33 @@ resource "aws_api_gateway_method" "proxy" {
   authorization = "COGNITO_USER_POOLS"
 }
 
+resource "aws_cognito_user_pool" "example" {
+  name = "example-user-pool"
+  # Configure other user pool attributes as needed
+}
+
+resource "aws_cognito_user_pool_client" "example" {
+  name                     = "example-user-pool-client"
+  user_pool_id             = aws_cognito_user_pool.example.id
+  generate_secret          = true
+  explicit_auth_flows       = ["ALLOW_REFRESH_TOKEN_AUTH"]
+}
+
+resource "aws_cognito_user_pool_domain" "example" {
+  domain = "example-domain"
+  user_pool_id = aws_cognito_user_pool.example.id
+}
+
+
+resource "aws_api_gateway_authorizer" "cognito" {
+  name                   = "example-cognito-authorizer"
+  rest_api_id            = aws_api_gateway_rest_api.example.id
+  type                   = "COGNITO_USER_POOLS"
+  identity_source        = "method.request.header.Authorization"
+  provider_arns          = [aws_cognito_user_pool.example.arn]
+}
+
+
 resource "aws_api_gateway_integration" "lambda" {
   rest_api_id = "${aws_api_gateway_rest_api.example.id}"
   resource_id = "${aws_api_gateway_method.proxy.resource_id}"
@@ -115,30 +142,6 @@ resource "aws_lambda_permission" "apigw" {
   source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*"
 }
 
-resource "aws_cognito_user_pool" "example" {
-  name = "example-user-pool"
-  # Configure other user pool attributes as needed
-}
-
-resource "aws_cognito_user_pool_client" "example" {
-  name                     = "example-user-pool-client"
-  user_pool_id             = aws_cognito_user_pool.example.id
-  generate_secret          = true
-  explicit_auth_flows       = ["ALLOW_REFRESH_TOKEN_AUTH"]
-}
-
-resource "aws_cognito_user_pool_domain" "example" {
-  domain = "example-domain"
-  user_pool_id = aws_cognito_user_pool.example.id
-}
-
-resource "aws_api_gateway_authorizer" "cognito" {
-  name                   = "example-cognito-authorizer"
-  rest_api_id            = aws_api_gateway_rest_api.example.id
-  type                   = "COGNITO_USER_POOLS"
-  identity_source        = "method.request.header.Authorization"
-  provider_arns          = [aws_cognito_user_pool.example.arn]
-}
 
 terraform {
   backend "s3" {
