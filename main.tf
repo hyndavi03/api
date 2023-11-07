@@ -40,6 +40,7 @@ resource "aws_cognito_user_pool_client" "example" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows             = ["code"]
   allowed_oauth_scopes            = ["phone", "email", "openid", "profile"]
+  callback_urls                   = ["https://example.com/callback"] # Specify your callback URL here
 }
 
 resource "aws_cognito_user_pool_domain" "example" {
@@ -119,6 +120,16 @@ resource "aws_lambda_permission" "apigw" {
 
   source_arn = aws_api_gateway_rest_api.example.execution_arn
 }
+
+  
+terraform {
+  backend "s3" {
+    bucket = "terraformstatefile0"  # Replace with your bucket name
+    key    = "terraform.tfstate"
+    region = "ap-south-1"  # Replace with your preferred region
+  }
+}
+
 
   
 terraform {
