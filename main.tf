@@ -34,10 +34,17 @@ resource "aws_cognito_user_pool" "example" {
 }
 
 resource "aws_cognito_user_pool_client" "example" {
-  name              = "example-user-pool-client"
-  user_pool_id      = aws_cognito_user_pool.example.id
-  generate_secret   = true
+  name                           = "example-user-pool-client"
+  user_pool_id                   = aws_cognito_user_pool.example.id
+  generate_secret                = true
   allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows             = ["code"]
+  allowed_oauth_scopes            = ["phone", "email", "openid", "profile"]
+}
+
+resource "aws_cognito_user_pool_domain" "example" {
+  domain = "my-pool-domain"
+  user_pool_id = aws_cognito_user_pool.example.id
 }
 
 resource "aws_api_gateway_rest_api" "example" {
@@ -56,6 +63,7 @@ resource "aws_api_gateway_method" "proxy" {
   resource_id   = aws_api_gateway_resource.proxy.id
   http_method   = "ANY"
   authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
 resource "aws_api_gateway_integration" "lambda" {
