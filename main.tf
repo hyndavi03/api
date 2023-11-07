@@ -57,6 +57,9 @@ resource "aws_api_gateway_method" "proxy" {
   http_method   = "ANY"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.cognito.id
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
 }
 
 resource "aws_cognito_user_pool" "example" {
@@ -94,6 +97,14 @@ resource "aws_api_gateway_integration" "lambda" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = "${aws_lambda_function.example.invoke_arn}"
+
+  request_templates = {
+    "application/json" = <<EOF
+{
+  "Authorization": "$input.params('Authorization')"
+}
+EOF
+  }
 }
 
 resource "aws_api_gateway_authorizer" "lambda" {
