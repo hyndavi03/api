@@ -72,7 +72,7 @@ resource "aws_cognito_user_pool_client" "example" {
 }
 
 resource "aws_cognito_user_pool_domain" "example" {
-  domain = "example-domain"
+  domain = "my-pool-domain"
   user_pool_id = aws_cognito_user_pool.example.id
 }
 
