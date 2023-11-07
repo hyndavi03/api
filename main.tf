@@ -56,6 +56,7 @@ resource "aws_api_gateway_method" "proxy" {
   resource_id   = "${aws_api_gateway_resource.proxy.id}"
   http_method   = "ANY"
   authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
 resource "aws_cognito_user_pool" "example" {
@@ -132,15 +133,15 @@ resource "aws_api_gateway_deployment" "example" {
 }
 
 resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+  statement_id  = "AllowCognitoInvoke"
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.example.function_name}"
-  principal     = "apigateway.amazonaws.com"
+  principal     = "cognito-idp.amazonaws.com"
 
-  # The /*/* portion grants access from any method on any resource
-  # within the API Gateway "REST API".
-  source_arn = "${aws_api_gateway_rest_api.example.execution_arn}/*/*"
+  source_arn = aws_cognito_user_pool.example.arn
 }
+
+  
 
 
 terraform {
